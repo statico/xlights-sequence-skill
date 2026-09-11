@@ -37,6 +37,9 @@ lyric lines therefore read as random full-screen flashes, not as text. Rules:
   section ends. Don't cap a line's length and leave the remainder bare.
 - Watch the seams. A matrix theme held for `S.mxspan` phrases is called once per span, so a 48-beat chorus is two
   calls; the first line of each call has to start at that call's own `a`, not at its sung time, or the seam is bare.
+- `wavey` scrolls left at the same rate as `left`, so `txtfit` sizes it too; pass `dir="wavey"` through rather than a
+  fixed speed. Holding a word still (`dir="none"`) only works under ~3 letters: at 18 px each glyph is ~11 px, so even
+  a 5-letter word is clipped on a 35 px matrix.
 - A text window that straddles a phrase boundary gets clipped into two effects, and each one restarts the scroll from
   the right, so neither half crosses. Emit a straddling hook whole from the phrase that owns its start and skip it in
   the next phrase (keep a `set()` of the ones already emitted); don't clip it.
