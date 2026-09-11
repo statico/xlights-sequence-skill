@@ -20,3 +20,22 @@ Crude grapheme -> phoneme map in `seqlib.phonemes` (a/i/y -> AI, e -> E, o -> O,
 - `S.txt("WORDS", a, b, dir="left", speed=12)`; short hook phrases of at most 4 words; scroll everything (static text on a 35 px matrix shows 6 letters); 2x speed for one-second cues. When the user tunes speeds in the GUI, read them back with `xsq_dump.py` and keep a `{start_ms: speed}` table in the generator.
 - Font string `'Family' 18`, Regular face only; wx fake-bold smears at 17 px.
 - Dump the ASCII matrix at every text moment; it must be legible.
+
+## Matrix text that has to fit its window
+
+A `left` scroll crosses the matrix once and stops, in `0.341*(11*chars+35)/speed` seconds (measured with a text-only
+probe sequence: 16 chars clear in 7.2 s at speed 10, 3.6 s at 20, 1.8 s at 40). `S.txtfit(text, a, b)` inverts that to
+pick the speed for the window you give it. Its `margin` defaults to `.85`, not 1.0: the formula counts characters, not
+glyph widths, so it overestimates on short strings — a 10-char line at the "exact" speed cleared a full second early.
+Running slightly slow and letting the effect's fade-out cover the tail is the safe side of that error.
+
+**Text over a background effect is a stencil.** With `1 is Unmask` (the default in `S.txt`) the layer below shows only
+through the glyphs, so wherever *no* Text effect is active the background shows at full brightness. Short gaps between
+lyric lines therefore read as random full-screen flashes, not as text. Rules:
+
+- Lyric lines must tile the whole window with no holes: each line holds until the next one starts, the last until the
+  section ends. Don't cap a line's length and leave the remainder bare.
+- Watch the seams. A matrix theme held for `S.mxspan` phrases is called once per span, so a 48-beat chorus is two
+  calls; the first line of each call has to start at that call's own `a`, not at its sung time, or the seam is bare.
+- `S.txt(..., mask=False)` blends solid glyphs over the background instead (layer method Max), for when the background
+  should stay visible the whole time.

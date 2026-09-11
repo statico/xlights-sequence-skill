@@ -43,7 +43,7 @@ Copy `scripts/make_example.py` to `scripts/make_<song>.py` and fill the tables (
 - **No white flashes, no hard on/off blinks.** Beat pulses are palette colours decaying 100 -> `S.floor` (35 %), layer Max, so they melt into the house effect. `accent()` strips near-white stops. A big musical moment (drop after a build) is the one place for white -> colour: `On` Max WHITE over 2 beats plus a Shockwave. `S.eff` rewrites every `On` 100->0 to end at `S.floor`, so write 100->0 and let the floor apply (set `S.floor=0` only if you truly want black).
 - **Hold things.** One matrix theme per 1-2 phrases (`S.mxspan`), one sprite per bar, moving Pictures = one effect per phrase with `speed = laps`. Per-beat sprite flips, per-crash sprite pops, and 4 short effects instead of one long one all read as flicker or teleporting.
 - **Hits follow the drummer**, not the grid: crash onsets from `crashes.py` in ms, `(ms-B0)/BP` fractional beats, often 50 ms early or on the 'and'.
-- Text scrolls (`dir=left`, speed ~12, 2x for one-second cues; a 17 px matrix shows about 6 letters at a time). Font: a Regular face only, never bold.
+- Text scrolls (`dir=left`; a 17 px matrix shows about 6 letters at a time). Size it with `S.txtfit(text, a, b)` rather than guessing a speed, and remember it is a stencil over the layer below: lyric lines must tile their window with no gaps or the background flashes through. Font: a Regular face only, never bold.
 - Every section has something moving on the house, the matrix and the floods; vary effects phrase to phrase, pulsing gets old.
 
 ```

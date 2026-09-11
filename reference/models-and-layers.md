@@ -13,7 +13,10 @@ Read `xlights/xlights_rgbeffects.xml` before writing the generator: `<model name
 ## Groups
 
 - Make a `house` group (`GROUP`) of every pixel-line model, i.e. `LINES`, which includes the `SMALL` ones. Face props must NOT be in it: with ModelBlending the group effect shows through the face's black pixels and the mouth "inherits" the roof. Floods stay out too.
-- Consequence: a floor, fade or palette fix on the house group never reaches the props. Props read as "fading from black" when their Outline effect (Color Wash / Bars) runs through a palette whose first stops are dark: give outlines `pal(*accent(p))`.
+- Consequence: a floor, fade or palette fix on the house group never reaches the props. Props read as "fading from black" when their Outline effect (Color Wash / Bars) runs through a palette whose first stops are dark: give outlines `ramp(p)`, which is `accent(p)` with a 45% copy of each stop interleaved.
+- A moving outline effect needs the ramped palette **and** a blending effect. Single Strand / Color Wash / Marquee stay 3-4 discrete colours even with an 8-stop palette, so a chase along an outline is a square wave that reads as a blink; Bars (Gradient + 3D), Meteors and Wave render 25-46 brightness levels travelling along it.
+- A `Faces` effect with `E_CHECKBOX_Faces_Outline=1` draws the outline itself and paints over the `Outline` submodel layers, so the prop's outline sits at one flat colour for the whole song. `Song.faces` sets it to 0 whenever that submodel has effects, and the writer emits one `<SubModelEffectLayer>` per non-empty submodel layer so `S.top("<prop>/Outline")` works like any other model.
+- The `SMALL` models strobe under fast house-group effects (Meteors, Wave, Pinwheel). Give them their own calm Color Wash at layer index 1 (Normal blend hides the group effect) and leave their beat pulses on layer 0: that took one bush from 428 brightness jumps with 20 flicker seconds to 192 with none.
 - Prop outlines: a submodel named `Outline` with the node ranges from the `FaceOutline` line of `faceInfo`, stored in the xsq as `<SubModelEffectLayer name="Outline">` inside the model element. Submodel effects overwrite the model's face pixels (black included). VU timing-event types render flat on submodels: use cycle-timed effects (Single Strand chase, Bars, Color Wash with cycles = bars in the phrase).
 
 ## Layers

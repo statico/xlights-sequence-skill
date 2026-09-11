@@ -27,10 +27,18 @@ PULSE_MAX=PULSE.replace("Normal","Max")   # same, but decays into the house-grou
 HIT=PULSE   # accent hit on a model's top layer: Normal so it replaces whatever is decaying under it
 HOUSE_BEAT=["Timing Event Jump","Timing Event Timed Sweep","Timing Event Bar Bounce","Timing Event Sweep 2"]  # whole-house beat layer in drops, per phrase
 BOUNCE=[1,2,3,4,5,4,3,2]   # flood chase order: one flood per beat, left-right-left
-OUTLINE_FX=[("Single Strand","E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_Chase_Type1=Left-Right,E_SLIDER_Number_Chases=2,E_SLIDER_Color_Mix1=30,E_TEXTCTRL_Chase_Rotations=4.0,E_CHECKBOX_Chase_3dFade1=1,"+fade(0,0)),
-            ("Bars","E_SLIDER_Bars_BarCount=4,E_CHOICE_Bars_Direction=Left,E_CHECKBOX_Bars_Gradient=1,E_TEXTCTRL_Bars_Cycles=4.0,"+fade(0,0)),
-            ("Single Strand","E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_Chase_Type1=Bounce from Left,E_SLIDER_Number_Chases=1,E_SLIDER_Color_Mix1=40,E_TEXTCTRL_Chase_Rotations=8.0,E_CHECKBOX_Chase_3dFade1=1,"+fade(0,0)),
-            ("Color Wash","E_TEXTCTRL_ColorWash_Cycles=16.0,"+fade(0,0))]   # prop outlines in drops, per phrase (VU timing types render flat on submodels)
+def dim(c,f=0.45): return "#"+"".join(f"{int(int(c[i:i+2],16)*f):02X}" for i in (1,3,5))
+def ramp(p,f=0.45):   # accent stops interleaved with dimmed copies: a chase through this is a gradient, not an on/off edge
+    ac=accent(p); return pal(*[c for x in ac for c in (dim(x,f),x)],dim(ac[0],f))
+
+OUTLINE_FX=[("Bars","E_SLIDER_Bars_BarCount=3,E_CHOICE_Bars_Direction=Left,E_CHECKBOX_Bars_3D=1,E_CHECKBOX_Bars_Gradient=1,E_TEXTCTRL_Bars_Cycles=4.0,"+fade(0,0)),
+            ("Meteors","E_CHOICE_Meteors_Type=Palette,E_CHOICE_Meteors_Effect=Left,E_SLIDER_Meteors_Count=25,E_SLIDER_Meteors_Length=60,E_SLIDER_Meteors_Speed=15,"+fade(0,0)),
+            ("Bars","E_SLIDER_Bars_BarCount=2,E_CHOICE_Bars_Direction=Right,E_CHECKBOX_Bars_3D=1,E_CHECKBOX_Bars_Gradient=1,E_TEXTCTRL_Bars_Cycles=4.0,"+fade(0,0)),
+            ("Wave","E_CHOICE_Wave_Type=Sine,E_CHOICE_Fill_Colors=Palette,E_SLIDER_Number_Waves=2,E_SLIDER_Wave_Height=80,E_SLIDER_Thickness_Percentage=45,E_SLIDER_Wave_Speed=20,"+fade(0,0))]
+# Prop outlines in drops, per phrase. Two rules: run the palette through `ramp()`, and use a blending effect.
+# Single Strand / Color Wash / Marquee stay 3-4 discrete colours even with an 8-stop palette, so a chase along an
+# outline is a square wave that reads as a blink; Bars (Gradient), Meteors and Wave blend into a real travelling glow.
+# VU Meter timing-event types render flat on submodels, so outlines need cycle-timed effects either way.
 LINE_FX=["Timing Event Bar Bounce","Timing Event Sweep 2","Timing Event Random Bar","Timing Event Bars"]      # roof/porch lines in drops, per phrase
 BEAT_LAYER={"drop":("Timing Event Jump","Beats"),"build":("Timing Event Jump","Beats"),"call":("Timing Event Jump","Beats"),"intro":("Timing Event Jump","Bars"),"break":("Timing Event Jump","Bars"),"outro":("Timing Event Jump","Bars")}
 OUTLINES=tuple(f"{f}/Outline" for f in FACE)   # prop outline submodels (node ranges from each faceInfo FaceOutline)
@@ -88,7 +96,16 @@ class Song:
         self.add(GROUP,0,n,s,p,a,b)
         if n=="Fire": self.add(GROUP,1,"On","E_TEXTCTRL_Eff_On_Start=50,E_TEXTCTRL_Eff_On_End=50,T_CHOICE_LayerMethod=Normal",pal(accent(p)[0]),a,b)   # Fire grows from black over ~4 s; a floor under it so the props never start dark
     def pic(self,f,a,b,layer=0,dir="none",speed=1.0): self.add("matrix",layer,"Pictures",f"E_TEXTCTRL_Pictures_Filename=sprites/{f},E_CHOICE_Pictures_Direction={dir},E_TEXTCTRL_Pictures_Speed={speed},E_TEXTCTRL_Pictures_FrameRateAdj=1.0,E_CHOICE_Scaling=Scale To Fit,E_CHECKBOX_Pictures_TransparentBlack=1,"+UNMASK+fade(0,0),WHITE,a,b)
-    def txt(self,s,a,b,dir="left",speed=12,fi=0,fo=0,p=WHITE,layer=0): self.add("matrix",layer,"Text",f"E_TEXTCTRL_Text={s},E_CHOICE_Text_Dir={dir},E_SLIDER_Text_Speed={speed},E_FONTPICKER_Text_Font={self.font},E_CHECKBOX_Text_PixelOffsets=0,"+UNMASK+fade(fi,fo),p,a,b)
+    def txt(self,s,a,b,dir="left",speed=12,fi=0,fo=0,p=WHITE,layer=0,mask=True):
+        # Speed is a TEXTCTRL key; E_SLIDER_Text_Speed is silently ignored and everything scrolls at the default rate.
+        # mask=True: the text is a stencil, the layer below shows through the glyphs (and nothing shows between lines).
+        # mask=False: solid glyphs blended over whatever is below, so a background effect stays visible in the gaps.
+        self.add("matrix",layer,"Text",f"E_TEXTCTRL_Text={s},E_CHOICE_Text_Dir={dir},E_TEXTCTRL_Text_Speed={speed},E_FONTPICKER_Text_Font={self.font},E_CHECKBOX_Text_PixelOffsets=0,"+(UNMASK if mask else "T_CHOICE_LayerMethod=Max,")+fade(fi,fo),p,a,b)
+    def txtfit(self,s,a,b,margin=.85,**kw):
+        """Scrolling text sized to its own window: a `left` scroll crosses once and stops, in
+        0.341*(11*chars+35)/speed seconds (measured, 18 px display font on a 35 px matrix). The formula overestimates
+        on short strings, so margin .85 runs a little slow and the effect's fade-out covers the tail."""
+        sec=max((b-a)/1000,.2); return self.txt(s,a,b,speed=max(6,round(margin*.341*(11*len(s)+35)/sec)),**kw)
     def bg(self,n,s,p,a,b): self.add("matrix",1,n,s,p,a,b)
     def floods_wash(self,p,a,b,cycles=1.0):
         for n in range(1,6): self.add(f"flood{n}",0,"Color Wash",f"E_TEXTCTRL_ColorWash_Cycles={cycles},"+FADE,rot(p,n),a,b)
@@ -117,7 +134,7 @@ class Song:
             n,s,_=self.DROP_FX[self.fx%len(self.DROP_FX)]; p=theme[self.fx%len(theme)]; self.fx+=1; fx=self.fx
             pa,pb=self.bt(ph),min(self.bt(min(ph+phrase,k1)),self.DUR); self.house(n,s,p,pa,pb)
             self.add(GROUP,2,*vufx(HOUSE_BEAT[fx%len(HOUSE_BEAT)]),pal(*accent(p)),pa,pb)
-            for r in OUTLINES: self.add(r,0,*OUTLINE_FX[fx%len(OUTLINE_FX)],pal(*accent(p)),pa,pb)   # accents only: a wash/bars through the theme's dark shades reads as fading from black
+            for r in OUTLINES: self.add(r,0,*OUTLINE_FX[fx%len(OUTLINE_FX)],ramp(p),pa,pb)   # accents only: a wash/bars through the theme's dark shades reads as fading from black
             ac=accent(p)
             for k in range(ph,min(ph+phrase,k1)):        # floods: even phrases pulse alternate halves, odd phrases chase back and forth
                 for n in range(1,6):
@@ -147,7 +164,9 @@ class Song:
     def faces(self,phon,facepal,face=FACE):
         """Faces from phoneme lists {who:[(a,b,ph)]}; facepal(who, ms) -> palette (mouth, eyes, outline)."""
         for who,fd in face.items():
-            base=f"E_CHOICE_Faces_FaceDefinition={fd},E_CHOICE_Faces_Eyes=Auto,E_CHECKBOX_Faces_Outline=1,E_CHOICE_Faces_TimingTrack=,E_CHECKBOX_Faces_TransparentBlack=0,E_CHOICE_Faces_Phoneme="
+            # Faces draws the outline itself and paints over the Outline submodel layers; turn it off where
+            # the submodel has its own effects, or the prop's outline sits at a flat colour for the whole song.
+            base=f"E_CHOICE_Faces_FaceDefinition={fd},E_CHOICE_Faces_Eyes=Auto,E_CHECKBOX_Faces_Outline={0 if any(self.L.get(who+'/Outline',[])) else 1},E_CHOICE_Faces_TimingTrack=,E_CHECKBOX_Faces_TransparentBlack=0,E_CHOICE_Faces_Phoneme="
             t=0; out=[]
             for a,b,ph in sorted(phon[who]):
                 if a>t: out.append((t,a,"rest"))
@@ -193,7 +212,7 @@ class Song:
         if hits: self.hits(hits,color)
     def write(self,timings,script,extra=""):
         L=self.L; NL="\n"
-        def elem(x): return f'    <Element type="model" name="{x}">'+"".join(f"<EffectLayer>{''.join(l)}</EffectLayer>" for l in ([l for l in L.get(x,[[]]) if l] or [[]]))+"".join(f'<SubModelEffectLayer name="Outline">{"".join(L[x+"/Outline"][0])}</SubModelEffectLayer>' for _ in [0] if x+"/Outline" in L)+"</Element>"+NL
+        def elem(x): return f'    <Element type="model" name="{x}">'+"".join(f"<EffectLayer>{''.join(l)}</EffectLayer>" for l in ([l for l in L.get(x,[[]]) if l] or [[]]))+"".join(f'<SubModelEffectLayer name="Outline">{"".join(l)}</SubModelEffectLayer>' for l in L.get(x+"/Outline",[]) if l)+"</Element>"+NL
         def timing(name,evs): return f'    <Element type="timing" name="{name}"><EffectLayer>'+"".join(f'<Effect label="{l}" startTime="{a}" endTime="{b}"/>' for a,b,l in evs)+"</EffectLayer></Element>"+NL
         doc=f'''<?xml version="1.0" encoding="UTF-8"?>
 <xsequence BaseChannel="0" ChanCtrlBasic="0" ChanCtrlColor="0" FixedPointTiming="1" ModelBlending="true">
