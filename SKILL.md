@@ -55,6 +55,8 @@ python3 scripts/make_<song>.py && scripts/render.sh <song>
 ```
 tmp/venv/bin/python scripts/check.py xlights/sequences/<song>.fseq 12 43.5 61     # per-section lit%/colours, flicker seconds, white-flash frames, ASCII matrix at those times
 tmp/venv/bin/python scripts/blink.py xlights/sequences/<song>.fseq              # hard on/off and square-wave edges per model, with the effects active there
+python3 scripts/textfit.py                                                      # every scrolling Text: does the line cross its window, or clear early and let the background flash?
+tmp/venv/bin/python scripts/textcheck.py                                        # the same question answered from the rendered frames
 ```
 Fix what they show: a section with 0 % lit or 1-3 colours is a flat/blank effect (typo in a key = silent default); text must be legible in the ASCII dump; drops should have ~0 hard-offs on lines and floods. [reference/verify.md](reference/verify.md) has the fseq layout and what each number means.
 

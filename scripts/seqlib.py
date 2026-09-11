@@ -105,7 +105,7 @@ class Song:
         """Scrolling text sized to its own window: a `left` scroll crosses once and stops, in
         0.341*(11*chars+35)/speed seconds (measured, 18 px display font on a 35 px matrix). The formula overestimates
         on short strings, so margin .85 runs a little slow and the effect's fade-out covers the tail."""
-        sec=max((b-a)/1000,.2); return self.txt(s,a,b,speed=max(6,round(margin*.341*(11*len(s)+35)/sec)),**kw)
+        sec=max((b-a)/1000,.2); return self.txt(s,a,b,speed=max(3,round(margin*.341*(11*len(s)+35)/sec)),**kw)
     def bg(self,n,s,p,a,b): self.add("matrix",1,n,s,p,a,b)
     def floods_wash(self,p,a,b,cycles=1.0):
         for n in range(1,6): self.add(f"flood{n}",0,"Color Wash",f"E_TEXTCTRL_ColorWash_Cycles={cycles},"+FADE,rot(p,n),a,b)

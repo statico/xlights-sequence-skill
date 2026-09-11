@@ -37,5 +37,12 @@ lyric lines therefore read as random full-screen flashes, not as text. Rules:
   section ends. Don't cap a line's length and leave the remainder bare.
 - Watch the seams. A matrix theme held for `S.mxspan` phrases is called once per span, so a 48-beat chorus is two
   calls; the first line of each call has to start at that call's own `a`, not at its sung time, or the seam is bare.
+- A text window that straddles a phrase boundary gets clipped into two effects, and each one restarts the scroll from
+  the right, so neither half crosses. Emit a straddling hook whole from the phrase that owns its start and skip it in
+  the next phrase (keep a `set()` of the ones already emitted); don't clip it.
 - `S.txt(..., mask=False)` blends solid glyphs over the background instead (layer method Max), for when the background
   should stay visible the whole time.
+
+Audit both with the two scripts: `textfit.py` reads the .xsq and compares predicted traversal to each window (target
+ratio ~1.18; CUT never crosses, EARLY leaves the background bare), and `textcheck.py` decodes the .fseq and checks the
+text is still lit 85% of the way through its window and that the matrix is never almost fully lit.
