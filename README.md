@@ -32,7 +32,7 @@ Ask the agent: "make an xLights sequence for Enter Sandman". It reads `SKILL.md`
 SKILL.md                 the workflow (what the agent reads)
 reference/               models and layers, effect strings, beats and hits, lyrics/faces/sprites, verify
 scripts/                 get_audio.sh analyze.py crashes.py lyrics.py seqlib.py make_example.py sprite_example.py
-                         render.sh fseq.py check.py blink.py textfit.py textcheck.py xsq_dump.py
+                         render.sh fseq.py check.py blink.py textfit.py textcheck.py notes.py xsq_dump.py
 ```
 
 Only use audio you are entitled to. Generated sequences are yours; this repo contains no song content.
